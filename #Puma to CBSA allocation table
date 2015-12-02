@@ -1,0 +1,14 @@
+#Puma to CBSA allocation table
+###################################
+#Generate a correspondence file to allocate PUMAs (PUMA "2012") to the most-recent Core Based Statistical Areas (CBSA: Core Based (Metro/Micro-politan) Statistical Area - 2013) using the MABLE/Geocorr12 tool: http://mcdc.missouri.#edu/websas/geocorr12.html. The correspondence will not be neat in many cases but our standard approach is to include all PUMAs that are all or partially within each metro area as being part of that metro. What this means is that the #approximations of CBSAs will sometimes be larger in area and population than the actual CBSAs. If any PUMAs end up falling partially within two or more metro areas, include the PUMA in the metro that is shares the most population with and #note any such cases for our records.
+PUMA12tocbsa13 <- read.csv("N:/Disconnected Youth Work/2015 Report Work/ACS PUMS/PUMA12tocbsa13.txt")
+P2C<-(PUMA12tocbsa13)
+colnames(P2C)
+# "state"    "puma12"   "cbsa"     "stab"     "cbsaname" "PUMAname" "pop12"    "afact"    "AFACT2"
+
+# This takes out any pumas which are completely allocated to one CBSA and also takes out any pumas that don't belong to any cbsa
+newdata <- P2C[ which(P2C$afact !='1' & P2C$cbsa != ' '),]
+
+# so "newdata" is an object that has only pumas with partial allocation to cbsa
+
+# what I want to do next is if a puma12 value repeats, then compare the values of the corresponding afact. Take the afact with the highest value and allocate a 1 in a dummy variable. Only dummies with a 1 will have a cbsa assignment

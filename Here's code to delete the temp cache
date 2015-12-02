@@ -1,0 +1,8 @@
+Template.Nov.3 <- read.csv("N:/NYC Data to Go/Data Explorations/Data checking/unsurpessed/Template.Nov.3.csv")
+Sept.25 <- read.csv("N:/NYC Data to Go/Data Explorations/Data checking/Sept.25.csv")
+b<-t(Sept.25)
+
+MERGE.FLAT<-merge(x = Template.Nov.3, y = b, by.x = "VARIABLE" , by.y = "V4" , all.x = TRUE)
+
+
+write.csv(MERGE.FLAT, file = "MERGED.FLAT.2.csv")
