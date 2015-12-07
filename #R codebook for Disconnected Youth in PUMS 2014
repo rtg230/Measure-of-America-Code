@@ -1,0 +1,544 @@
+#R codebook for Disconnected Youth in PUMS 2014
+#12/1/15
+
+#hello, this is the codebook for calculating disconnected youth in the USA.
+#There were several steps in this process – omitting NAs, cleaning the data, and then finally #looking at the weighted results. 
+# We are storing the data in MySQL.
+
+#install the MySQL package and survey
+ install.packages("RMySQL")
+ library(RMySQL)
+ library("survey", lib.loc="~/R/R-3.2.0/library")
+
+# tell R where it can find the database
+pums14 <- dbConnect(MySQL(), user='r_gluskin', password='P2^4Wzu@s', dbname='moa_db', host='mysql.ssrc-dbhost-2914.org')
+ dbListTables(pums14)
+
+
+# Function to make it easier to query 
+query <- function(...) dbGetQuery(pums14, ...)
+
+
+
+
+# let's try and calculate a national number! Can r handle 44 million people? Of course it can. 
+
+ library(RMySQL)
+ library("survey", lib.loc="~/R/R-3.2.0/library")
+
+# tell R where it can find the database
+pums14 <- dbConnect(MySQL(), user='r_gluskin', password='P2^4Wzu@s', dbname='moa_db', host='mysql.ssrc-dbhost-2914.org')
+ dbListTables(pums14)
+
+
+# Function to make it easier to query 
+query <- function(...) dbGetQuery(pums14, ...)
+
+
+
+# Select out the variables we need for DY and pull out just the data for LA county to test.
+USAb<-query("SELECT SERIALNO, PUMA, PWGTP, ST, AGEP, RAC1P, SCH, ESR, HISP, SEX, pwgtp1 ,
+pwgtp2 ,
+pwgtp3 ,
+pwgtp4 ,
+pwgtp5 ,
+pwgtp6 ,
+pwgtp7 ,
+pwgtp8 ,
+pwgtp9 ,
+pwgtp10 ,
+pwgtp11 ,
+pwgtp12 ,
+pwgtp13 ,
+pwgtp14 ,
+pwgtp15 ,
+pwgtp16 ,
+pwgtp17 ,
+pwgtp18 ,
+pwgtp19 ,
+pwgtp20 ,
+pwgtp21 ,
+pwgtp22 ,
+pwgtp23 ,
+pwgtp24 ,
+pwgtp25 ,
+pwgtp26 ,
+pwgtp27 ,
+pwgtp28 ,
+pwgtp29 ,
+pwgtp30 ,
+pwgtp31 ,
+pwgtp32 ,
+pwgtp33 ,
+pwgtp34 ,
+pwgtp35 ,
+pwgtp36 ,
+pwgtp37 ,
+pwgtp38 ,
+pwgtp39 ,
+pwgtp40 ,
+pwgtp41 ,
+pwgtp42 ,
+pwgtp43 ,
+pwgtp44 ,
+pwgtp45 ,
+pwgtp46 ,
+pwgtp47 ,
+pwgtp48 ,
+pwgtp49 ,
+pwgtp50 ,
+pwgtp51 ,
+pwgtp52 ,
+pwgtp53 ,
+pwgtp54 ,
+pwgtp55 ,
+pwgtp56 ,
+pwgtp57 ,
+pwgtp58 ,
+pwgtp59 ,
+pwgtp60 ,
+pwgtp61 ,
+pwgtp62 ,
+pwgtp63 ,
+pwgtp64 ,
+pwgtp65 ,
+pwgtp66 ,
+pwgtp67 ,
+pwgtp68 ,
+pwgtp69 ,
+pwgtp70 ,
+pwgtp71 ,
+pwgtp72 ,
+pwgtp73 ,
+pwgtp74 ,
+pwgtp75 ,
+pwgtp76 ,
+pwgtp77 ,
+pwgtp78 ,
+pwgtp79 ,
+pwgtp80 
+ FROM s14pusb WHERE AGEP >='16'AND AGEP<= '24' AND ST < 70 ;")
+
+# We also need table a from PUMS! 
+
+USAa<-query("SELECT SERIALNO, PUMA, PWGTP, ST, AGEP, RAC1P, SCH, ESR, HISP, SEX, pwgtp1 ,
+pwgtp2 ,
+pwgtp3 ,
+pwgtp4 ,
+pwgtp5 ,
+pwgtp6 ,
+pwgtp7 ,
+pwgtp8 ,
+pwgtp9 ,
+pwgtp10 ,
+pwgtp11 ,
+pwgtp12 ,
+pwgtp13 ,
+pwgtp14 ,
+pwgtp15 ,
+pwgtp16 ,
+pwgtp17 ,
+pwgtp18 ,
+pwgtp19 ,
+pwgtp20 ,
+pwgtp21 ,
+pwgtp22 ,
+pwgtp23 ,
+pwgtp24 ,
+pwgtp25 ,
+pwgtp26 ,
+pwgtp27 ,
+pwgtp28 ,
+pwgtp29 ,
+pwgtp30 ,
+pwgtp31 ,
+pwgtp32 ,
+pwgtp33 ,
+pwgtp34 ,
+pwgtp35 ,
+pwgtp36 ,
+pwgtp37 ,
+pwgtp38 ,
+pwgtp39 ,
+pwgtp40 ,
+pwgtp41 ,
+pwgtp42 ,
+pwgtp43 ,
+pwgtp44 ,
+pwgtp45 ,
+pwgtp46 ,
+pwgtp47 ,
+pwgtp48 ,
+pwgtp49 ,
+pwgtp50 ,
+pwgtp51 ,
+pwgtp52 ,
+pwgtp53 ,
+pwgtp54 ,
+pwgtp55 ,
+pwgtp56 ,
+pwgtp57 ,
+pwgtp58 ,
+pwgtp59 ,
+pwgtp60 ,
+pwgtp61 ,
+pwgtp62 ,
+pwgtp63 ,
+pwgtp64 ,
+pwgtp65 ,
+pwgtp66 ,
+pwgtp67 ,
+pwgtp68 ,
+pwgtp69 ,
+pwgtp70 ,
+pwgtp71 ,
+pwgtp72 ,
+pwgtp73 ,
+pwgtp74 ,
+pwgtp75 ,
+pwgtp76 ,
+pwgtp77 ,
+pwgtp78 ,
+pwgtp79 ,
+pwgtp80 
+ FROM s14pusa WHERE AGEP >='16'AND AGEP<= '24' AND ST < 70 ;")
+
+#now take both of these big USA youth tables and row combine them to make one table.
+USA<- rbind(USAa, USAb)
+
+#creating dummy variable for DY 
+
+USA$DYdummy <- as.numeric(ifelse(USA$SCH == 1 & (USA$ESR == 3 | USA$ESR == 6), 1, 0))
+
+#creating a variable for gender
+
+USA$male <- as.numeric(ifelse(USA$SEX == 1, 1, 0))
+USA$female <- as.numeric(ifelse(USA$SEX == 2 , 1, 0))
+          
+########################## Race ethnicity not working as of December 4th
+#creating dummy variables for race
+ 
+USA$white <- as.numeric(ifelse(USA$RAC1P == 1 & USA$HISP == "01" , 1, 0))
+USA$black <- as.numeric(ifelse(USA$RAC1P == 2 & USA$HISP == "01" , 1, 0))
+USA$asian <- as.numeric(ifelse(USA$RAC1P == 6 & USA$HISP == "01" , 1, 0))
+USA$native <-as.numeric(ifelse((USA$RAC1P == 4 | USA$RAC1P == 5 | USA$RAC1P == 7) & (USA$HISP == "01"), 1 ,0))
+USA$latino <- as.numeric(ifelse( USA$HISP != "01" , 1,0)) 
+
+
+
+
+#converting all variables to numeric form
+ 
+for(i in c(1,1:ncol(USA))) {
+    USA[,i] <- as.numeric(USA[,i])
+}
+
+
+
+#create a unique ID for each row
+
+id <- rownames(USA)
+USA.id <- cbind(id=id, USA)
+
+# putting each race/gender into it's own table
+
+##### I need to finish the code for gender, race, and ethnicity
+male <- 0
+female <- 0
+white <- 0
+white.m <-0
+white.f <-0 
+black <- 0
+black.m <- 0
+black.f <- 0
+asian <- 0
+asian.m <- 0
+asian.f <-0
+native <- 0
+native.m <- 0
+native.f <- 0
+latino <- 0
+latino.m <- 0
+latin.f <- 0
+
+
+#now let us put them into their own objects
+male <- USA.id[USA.id$male ==1, ]
+female <- USA.id[USA.id$female ==1, ]
+white <- USA.id[USA.id$white ==1, ]
+black <- USA.id[USA.id$black==1, ]
+asian <- USA.id[USA.id$asian==1, ]
+native <- USA.id[USA.id$native==1, ]
+latino <- USA.id[USA.id$latino==1, ]
+
+# put the above in a list 
+genrac <-list( male ,
+female 
+,white 
+#,white.m ,white.f 
+,black
+# ,black.m ,black.f
+ ,asian 
+ #,asian.m ,asian.f 
+ ,native 
+ #,native.m ,native.f 
+ ,latino 
+ #,latino.m ,latin.f 
+ )
+
+
+# Code for for replicate wts, using the R package “Survey”
+
+genrac.function <- function(x){
+brr.dy.x <-svrepdesign(variables=x[,c(1:11,92)],
+repweights= x[,12:91],
+type="BRR",combined.weights=TRUE,
+weights= x$PWGTP)
+
+# This calculates the rate of DY
+mean<-(100*(as.data.frame(svymean(~DYdummy, brr.dy.x))))
+
+
+#This calculates the total number of DY
+
+total<-as.data.frame(svytotal(~DYdummy, brr.dy.x))
+dytable<- cbind(mean,total)
+}
+
+ USA.genrac <- sapply(genrac, genrac.function, USE.NAMES = TRUE)
+ 
+ #transpose and format ( need to do sig figs)
+ dy.USA.genrac <- t(USA.genrac)
+
+ 
+
+
+
+
+
+
+#here's an empty table to store the data
+usa.res<- 0
+# This calculates the national rate of DY
+USA.rate<-100*(as.data.frame(svymean(~USA.id$DYdummy, brr.dy.USA)))
+male.rate<-100*(as.data.frame(svymean(~USA.id$dy.male, brr.dy.USA)))
+female.rate<-100*(as.data.frame(svymean(~USA.id$dy.female, brr.dy.USA)))
+white.rate<-100*(as.data.frame(svymean(~USA.id$dy.white, brr.dy.USA)))
+black.rate<-100*(as.data.frame(svymean(~USA.id$dy.black, brr.dy.USA)))
+asian.rate<-100*(as.data.frame(svymean(~USA.id$dy.asian, brr.dy.USA)))
+native.rate<-100*(as.data.frame(svymean(~USA.id$dy.native, brr.dy.USA)))
+latino.rate<-100*(as.data.frame(svymean(~USA.id$dy.latino, brr.dy.USA)))
+
+
+usa.res<- rbind(rate,male.rate,female.rate, white.rate, black.rate, asian.rate, native.rate, latino.rate)
+#This calculates the total number of DY
+USA.count<-as.data.frame(svytotal(~DYdummy, brr.dy.USA))
+male.count<-as.data.frame(svytotal(~USA.id$dy.male, brr.dy.USA))
+female.count<-as.data.frame(svytotal(~USA.id$dy.female, brr.dy.USA))
+white.count<-as.data.frame(svytotal(~USA.id$dy.white, brr.dy.USA))
+black.count<-as.data.frame(svytotal(~USA.id$dy.black, brr.dy.USA))
+asian.count<-as.data.frame(svytotal(~USA.id$dy.asian, brr.dy.USA))
+native.count<-as.data.frame(svytotal(~USA.id$dy.native, brr.dy.USA))
+latino.count<-as.data.frame(svytotal(~USA.id$dy.latino, brr.dy.USA))
+
+### the output  for usa is:        
+#            mean    SE
+#DYdummy   0.13179 4e-04
+
+
+
+#now let's create a function that can be applied to different geographic regions
+
+#the large table is USA id. We want to divide that up into states by number.
+#Let's make 51 dataframes
+
+AL1<- 0
+AK2<- 0
+AZ4 <- 0
+AR5<-0
+CA6<-0
+CO8<-0
+CT9<-0
+DE10<-0
+DC11<-0
+FL12<-0
+GA13<-0
+HI15<-0
+ID16<-0
+IL17<-0
+IN18<-0
+IA19<-0
+KS20<-0
+KY21<-0
+LA22<-0
+ME23<-0
+MD24<-0
+MA25<-0
+MI26<-0
+MN27<-0
+MS28<-0
+MO29<-0
+MT30<-0
+NE31<-0
+NV32<-0
+NH33<-0
+NJ34<-0
+NM35<-0
+NY36<-0
+NC37<-0
+ND38<-0
+OH39<-0
+OK40<-0
+OR41<-0
+PA42<-0
+RI44<-0
+SC45<-0
+SD46<-0
+TN47<-0
+TX48<-0
+UT49<-0
+VT50<-0
+VA51<-0
+WA53<-0
+WV54<-0
+WI55<-0
+WY56<-0
+
+# now let's put them in a tidy list
+state.list <- list(AL1,
+AK2,
+AZ4,
+AR5,
+CA6,
+CO8,
+CT9,
+DE10,
+DC11,
+FL12,
+GA13,
+HI15,
+ID16,
+IL17,
+IN18,
+IA19,
+KS20,
+KY21,
+LA22,
+ME23,
+MD24,
+MA25,
+MI26,
+MN27,
+MS28,
+MO29,
+MT30,
+NE31,
+NV32,
+NH33,
+NJ34,
+NM35,
+NY36,
+NC37,
+ND38,
+OH39,
+OK40,
+OR41,
+PA42,
+RI44,
+SC45,
+SD46,
+TN47,
+TX48,
+UT49,
+VT50,
+VA51,
+WA53,
+WV54,
+WI55,
+WY56
+)
+
+#now let us split up the USA.id data frame by states
+
+state.list <- split(USA.id, USA.id$ST)
+
+#now we need to assign each dataframe in the list of state.list to each of the state dataframes
+
+lapply(seq_along(state.list), function(x) {assign(c( "AL1 ",
+ "AK2 ",
+ "AZ4 ",
+ "AR5 ",
+ "CA6 ",
+ "CO8 ",
+ "CT9 ",
+ "DE10 ",
+ "DC11 ",
+ "FL12 ",
+ "GA13 ",
+ "HI15 ",
+ "ID16 ",
+ "IL17 ",
+ "IN18 ",
+ "IA19 ",
+ "KS20 ",
+ "KY21 ",
+ "LA22 ",
+ "ME23 ",
+ "MD24 ",
+ "MA25 ",
+ "MI26 ",
+ "MN27 ",
+ "MS28 ",
+ "MO29 ",
+ "MT30 ",
+ "NE31 ",
+ "NV32 ",
+ "NH33 ",
+ "NJ34 ",
+ "NM35 ",
+ "NY36 ",
+ "NC37 ",
+ "ND38 ",
+ "OH39 ",
+ "OK40 ",
+ "OR41 ",
+ "PA42 ",
+ "RI44 ",
+ "SC45 ",
+ "SD46 ",
+ "TN47 ",
+ "TX48 ",
+ "UT49 ",
+ "VT50 ",
+ "VA51 ",
+ "WA53 ",
+ "WV54 ",
+ "WI55 ",
+ "WY56 "
+)[x], state.list[[x]], envir=.GlobalEnv)
+    }
+)
+
+
+
+state.function <- function(x){
+brr.dy.x <-svrepdesign(variables=x[,c(1:11,92)],
+repweights= x[,12:91],
+type="BRR",combined.weights=TRUE,
+weights= x$PWGTP)
+
+# This calculates the rate of DY
+mean<-as.data.frame(svymean(~DYdummy, brr.dy.x))
+
+
+#This calculates the total number of DY
+total<-as.data.frame(svytotal(~DYdummy, brr.dy.x))
+dytable<- cbind(mean,total)
+}
+
+ state.dy.table <- sapply(state.list, state.function, USE.NAMES = TRUE)
+ 
+ #transpose and format ( need to do sig figs)
+ dy.state <- t(state.dy.table)
+
+ 
